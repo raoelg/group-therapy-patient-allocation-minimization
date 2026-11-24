@@ -37,7 +37,7 @@ docker run -d --name grouptherapy --restart unless-stopped \
 
 ## `docs/`: static HTML + JavaScript version
 
-`index.html` plus `app.js`, in plain JavaScript with no libraries, no build step and no server. Open `index.html` in a browser, or publish the folder with GitHub Pages (Settings → Pages → branch `main`, folder `/docs`). All computation happens in the browser; no data leave the computer.
+`index.html` plus `app.js`, in plain JavaScript with no libraries, no build step and no server. Open [`index.html` in a browser](https://raoelg.github.io/group-therapy-patient-allocation-minimization/), or publish the folder with GitHub Pages (Settings → Pages → branch `main`, folder `/docs`). All computation happens in the browser; no data leave the computer.
 
 It has the same inputs, outputs and tabs as the Shiny app:
 - **Inputs:** Randomization Seed (default: today's date as YYYYMMDD, set on page load), the two CSV files, the patient-ID column, Available spots, the disabled Randomness slider, and Download All.
