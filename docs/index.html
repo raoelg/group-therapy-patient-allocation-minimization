@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Group Therapy Assignment</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #222; --muted: #6b6b6b; --panel: #f5f5f5; --border: #dcdcdc;
+    --accent: #2c6fb7; --nav: #2c3e50; --nav-fg: #ffffff; --err: #b3261e; --err-bg: #fde7e7; --row-alt: #fafafa;
+    --code-bg: #f7f7f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17191c; --fg: #e6e6e6; --muted: #a0a0a0; --panel: #23262a; --border: #3a3e44;
+      --accent: #6aa6ee; --nav: #101418; --nav-fg: #e6e6e6; --err: #ff8a80; --err-bg: #4a1f1f; --row-alt: #1d2024;
+      --code-bg: #1d2024;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17191c; --fg: #e6e6e6; --muted: #a0a0a0; --panel: #23262a; --border: #3a3e44;
+    --accent: #6aa6ee; --nav: #101418; --nav-fg: #e6e6e6; --err: #ff8a80; --err-bg: #4a1f1f; --row-alt: #1d2024;
+    --code-bg: #1d2024;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  header.nav { background: var(--nav); color: var(--nav-fg); display: flex; align-items: center; gap: 24px; padding: 0 16px; min-height: 50px; flex-wrap: wrap; }
+  header.nav .brand { font-size: 18px; }
+  header.nav .page { font-size: 14px; opacity: .85; border-bottom: 2px solid var(--nav-fg); padding: 14px 0 12px; }
+  .layout { display: flex; gap: 18px; padding: 14px 16px 24px; align-items: flex-start; }
+  .sidebar { flex: 0 0 300px; background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 14px; }
+  .main { flex: 1 1 auto; min-width: 0; }
+  @media (max-width: 820px) { .layout { flex-direction: column; } .sidebar { flex: none; width: 100%; } }
+  label.ctl { display: block; font-weight: 600; margin: 12px 0 4px; }
+  input[type=number], select, textarea { width: 100%; padding: 5px 7px; border: 1px solid var(--border); border-radius: 3px; background: var(--bg); color: var(--fg); font: inherit; }
+  textarea { min-height: 60px; resize: vertical; }
+  input[type=file] { width: 100%; font-size: 13px; }
+  input[type=range] { width: 100%; }
+  input[type=range]:disabled { opacity: .5; }
+  .note { font-size: 12px; color: var(--muted); margin: 4px 0; }
+  details.adv summary { cursor: pointer; font-weight: 600; margin-top: 14px; }
+  .info-i { display: inline-block; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px; text-align: center; line-height: 16px; cursor: help; font-weight: 700; }
+  .tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+  .tabs button { background: none; border: 1px solid transparent; border-bottom: none; padding: 8px 13px; cursor: pointer; color: var(--accent); font: inherit; border-radius: 4px 4px 0 0; margin-bottom: -1px; }
+  .tabs button.active { color: var(--fg); border-color: var(--border); background: var(--bg); }
+  .tabpane { display: none; padding-top: 10px; }
+  .tabpane.active { display: block; }
+  .tbl-scroll { overflow: auto; max-height: 420px; }
+  table.data { border-collapse: collapse; font-size: 13px; }
+  table.data th, table.data td { border-bottom: 1px solid var(--border); padding: 4px 10px; text-align: left; white-space: pre; }
+  table.data th { border-bottom: 2px solid var(--border); position: sticky; top: 0; background: var(--bg); }
+  table.data tbody tr:nth-child(odd) { background: var(--row-alt); }
+  table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+  button.dl { margin-top: 14px; padding: 6px 12px; border: 1px solid var(--border); background: var(--bg); color: var(--fg); border-radius: 3px; cursor: pointer; font: inherit; }
+  button.dl:disabled { opacity: .5; cursor: default; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 3px; padding: 10px; overflow: auto; font: 12.5px/1.4 ui-monospace, Menlo, Consolas, monospace; white-space: pre; }
+  .err { color: var(--err); }
+  #toasts { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 6px; z-index: 10; max-width: min(380px, calc(100vw - 32px)); }
+  .toast { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 8px 28px 8px 10px; position: relative; box-shadow: 0 2px 6px rgba(0,0,0,.15); font-size: 13px; }
+  .toast.error { background: var(--err-bg); }
+  .toast-x { position: absolute; right: 4px; top: 2px; border: 0; background: none; color: var(--fg); cursor: pointer; font-size: 16px; }
+</style>
+</head>
+<body>
+<header class="nav"><span class="brand">Group Therapy RTC Patient Assignment</span><span class="page">Data</span></header>
+<div class="layout">
+  <aside class="sidebar">
+    <label class="ctl" for="RandomSeed">Randomization Seed</label>
+    <input type="number" id="RandomSeed" step="1" value="20200416">
+
+    <label class="ctl" for="existing_patients">File with existing patients</label>
+    <input type="file" id="existing_patients" accept="text/csv,.csv">
+
+    <label class="ctl" for="new_patients">File with new patients</label>
+    <input type="file" id="new_patients" accept="text/csv,.csv">
+
+    <label class="ctl" for="patient_id">Column with patient ID</label>
+    <select id="patient_id"><option value=""></option></select>
+
+    <label class="ctl" for="spots_k">Available spots</label>
+    <textarea id="spots_k">expA = 3, expB = 1</textarea>
+
+    <label class="ctl" for="randomness">Randomness <span class="info-i" title="Disabled, as in the original app: the predictability is fixed at 0.8, i.e. with probability 0.8 an allocation with the lowest imbalance found is used, and with probability 0.2 one of the other imbalance values in the search trace (each distinct value equally likely).">i</span></label>
+    <input type="range" id="randomness" min="0.2" max="0.2" step="0.1" value="0.2" disabled>
+    <p class="note">0.2</p>
+
+    <button class="dl" id="downloadFile" disabled>&#x2B07; Download All</button>
+
+    <details class="adv">
+      <summary>Reproducibility (R compatibility)</summary>
+      <label class="ctl" for="samplekind">R sample.kind
+        <span class="info-i" title="How R's sample() turns uniform random numbers into integers.&#10;&#10;Rounding: R before 3.6.0, floor(n * unif_rand()). The original app was deployed in 2020 on R 3.5.2, so 'Rounding' reproduces allocations computed by that deployment (in R >= 3.6 use RNGkind(sample.kind = &quot;Rounding&quot;)).&#10;&#10;Rejection: default since R 3.6.0 (bit-wise rejection sampling, unbiased). Use this to reproduce the app running on R 3.6 (this setting also applies the R 3.6 change that writes logical columns as TRUE/FALSE instead of space-padded ' TRUE').&#10;&#10;Both use the Mersenne-Twister generator seeded with set.seed(seed). The weighted draw of the imbalance class (sample with prob) is the same in both.">i</span></label>
+      <select id="samplekind">
+        <option value="Rounding" selected>Rounding (R &lt; 3.6.0, 2020 deployment, default)</option>
+        <option value="Rejection">Rejection (R &gt;= 3.6.0)</option>
+      </select>
+      <label class="ctl" for="collation">String collation for factor levels
+        <span class="info-i" title="read.csv() turns text columns into factors whose levels are sorted with the collation of the R session. The 2020 deployment ran in en_US.UTF-8 (R with ICU): 'locale'. 'C' = code-point order (an R session with LC_COLLATE=C). The level order determines the stratum order, and thereby the random numbers each patient gets.">i</span></label>
+      <select id="collation">
+        <option value="locale" selected>locale (en_US.UTF-8)</option>
+        <option value="C">C</option>
+      </select>
+      <p class="note">Everything is computed in this browser; no data leave your computer.</p>
+    </details>
+  </aside>
+
+  <main class="main">
+    <nav class="tabs">
+      <button class="active" data-tab="tab-existing">Existing patients allocation</button>
+      <button data-tab="tab-new">New patients to allocate</button>
+      <button data-tab="tab-alloc">Generated allocation</button>
+      <button data-tab="tab-debug">Debug</button>
+    </nav>
+    <section class="tabpane active" id="tab-existing">
+      <p>Existing patients should tabulate all patients that have already been enrolled in
+      any of the therapy arms. All covariates should be <b>factors</b>. There should be
+      one factor called <b>arm</b> which specifies the therapy are to which the patient
+      was admitted.</p>
+      <div id="tblExisting"></div>
+    </section>
+    <section class="tabpane" id="tab-new">
+      <p>New patients should tabulate all patients to consider for allocation. All covariates
+      should be the same <b>factors</b> as for Existing patients. If one of the columns contains
+      a patient ID, specify the name of the column in 'Patient ID'.</p>
+      <div id="tblNew"></div>
+    </section>
+    <section class="tabpane" id="tab-alloc">
+      <div id="tblAlloc"></div>
+    </section>
+    <section class="tabpane" id="tab-debug">
+      <pre id="debug"></pre>
+      <h4>Details of the computation <span class="info-i" title="Not part of the original app: a summary of the intermediate steps (initial random draw, local search, sampled imbalance class).">i</span></h4>
+      <pre id="debugExtra"></pre>
+    </section>
+  </main>
+</div>
+<div id="toasts"></div>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+# R 3.6.3 with the same 104 locked packages (for sample.kind = "Rejection", which needs R >= 3.6.0).
+# Build from the shiny/ directory after ./fetch_github_sources.sh:
+#   docker build -f ../tests/Dockerfile.r363 -t gta-r363 shiny/        (run in tests/)
+FROM rocker/tidyverse:3.6.3
+COPY packrat.lock /tmp/packrat.lock
+COPY src/ /tmp/src/
+COPY install_local.R /tmp/install_local.R
+RUN MAKEFLAGS=-j2 Rscript /tmp/install_local.R && rm -rf /tmp/src

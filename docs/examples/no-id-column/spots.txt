@@ -1,0 +1,3 @@
+expA = 3, expB = 3
+
+No patient ID column. In the original app the first column (sex) is then selected as 'patient ID' and silently dropped from the covariates; in the JS version choose '(none)' to keep it.

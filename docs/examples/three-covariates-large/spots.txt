@@ -1,0 +1,3 @@
+cntrl = 6, expA = 6, expB = 6, expC = 6
+
+120 existing and 24 new patients, 3 covariates (18 strata), 4 arms, exactly as many spots as new patients.

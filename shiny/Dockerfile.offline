@@ -1,0 +1,18 @@
+# Same image as Dockerfile, for build machines without access to CRAN / Posit Package Manager /
+# archive.debian.org: run ./fetch_github_sources.sh first (packages from github.com/cran at the
+# locked versions, Debian dev headers from rocker/tidyverse:3.5.2), then
+#   docker build -f Dockerfile.offline -t grouptherapy:r3.5.2 .
+FROM rocker/shiny:3.5.2
+ADD devlibs.tar /
+COPY packrat.lock /tmp/packrat.lock
+COPY src/ /tmp/src/
+COPY install_local.R /tmp/install_local.R
+RUN MAKEFLAGS=-j4 Rscript /tmp/install_local.R && rm -rf /tmp/src
+RUN rm -rf /srv/shiny-server/*
+COPY shiny-server.conf /etc/shiny-server/shiny-server.conf
+COPY app/ /srv/shiny-server/grouptherapy/
+# Shiny Server serves an R Markdown document (runtime: shiny) in an app_dir when it is called index.Rmd.
+# The app directory stays owned by root and read-only for the "shiny" user, so nothing can be written
+# next to the Rmd; rmarkdown renders into the R session's tempdir and uploads also go to tempdir.
+RUN ln -s GroupTherapyPatientAllocationWebApp.Rmd /srv/shiny-server/grouptherapy/index.Rmd \
+ && chmod -R a+rX,go-w /srv/shiny-server/grouptherapy

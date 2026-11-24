@@ -1,0 +1,5 @@
+#!/bin/sh
+# Hourly (/etc/cron.hourly/): remove the R temp folders of the grouptherapy container (uploaded CSV files,
+# rendered pages) when no R process runs in it (app asleep after app_idle_timeout). R removes its tempdir
+# itself on a normal exit; this catches R processes that were killed.
+docker exec grouptherapy sh -c 'grep -qx R /proc/[0-9]*/comm 2>/dev/null || rm -rf /tmp/Rtmp*' 2>/dev/null || true

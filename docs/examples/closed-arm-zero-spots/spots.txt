@@ -1,0 +1,3 @@
+A = 3, B = 3, C = 0
+
+Arm C is full (0 spots) but its existing patients still count in the balance.

@@ -1,0 +1,3 @@
+cntrl = 3, expA = 3, expB = 2
+
+10 new patients, 8 spots: 2 patients are put on the 'wait' list. Patient ID column: patient.

@@ -1,0 +1,5 @@
+.DS_Store
+shiny/src/
+shiny/devlibs.tar
+tests/cases/
+tests/stress_r*.json
