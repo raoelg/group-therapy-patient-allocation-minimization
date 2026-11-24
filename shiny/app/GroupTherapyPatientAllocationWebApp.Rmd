@@ -1,0 +1,216 @@
+---
+title: "Group Therapy RTC Patient Assignment"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(shinyjs)
+source("GroupTherapyPatientRandomization.R")
+```
+
+
+
+Data
+=======================================================================
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+
+```{r echo=FALSE}
+shinyjs::useShinyjs()
+
+rSeed = as.integer(gsub("\\D", "", Sys.Date()))
+
+numericInput("RandomSeed", label = "Randomization Seed", value = rSeed)
+  
+fileInput("existing_patients", label = "File with existing patients", multiple = FALSE, 
+            accept = "text/csv", buttonLabel = "CSV file")
+  
+fileInput("new_patients", label = "File with new patients", multiple = FALSE, 
+            accept = "text/csv", buttonLabel = "CSV file")
+
+selectInput("patient_id", label = "Column with patient ID", choices = "")
+
+textAreaInput("spots_k", "Available spots", value = "expA = 3, expB = 1")
+
+sliderInput("randomness", label = "Randomness", value=0.2, min=0.2, max=0.2)
+
+renderUI({
+  downloadButton("downloadFile", "Download All")
+})
+
+```
+
+
+```{r}
+val <- reactiveValues(dfExisting = NULL, dfNew  = NULL, rSeed = NULL, alloc=NULL, k=NULL, predicatbility = 1, patien_id=NULL)#, k=c(cntrl=2, expA=3, expB=1))
+
+
+observe({
+  req(input$RandomSeed)
+  rSeed = try(as.integer(input$RandomSeed))
+  if (inherits(rSeed, "error")) {showNotification("Seed must be a number"); return(NULL);}
+  val$rSeed = rSeed;
+})
+
+observe({
+  req(input$existing_patients, cancelOutput = TRUE)
+  theFile = input$existing_patients
+  tmp <- read.csv(theFile$datapath)
+  val$dfExisting <- tmp
+  if ("arm" %in% names(tmp))
+    updateTextAreaInput(session, inputId = "spots_k", value = paste(paste(unique(tmp$arm), " = 0"), collapse=", "))
+})
+
+observe({
+  req(input$new_patients, cancelOutput = TRUE)
+  theFile = input$new_patients
+  tmp <- read.csv(theFile$datapath)
+  val$dfNew <- tmp
+  updateSelectInput(session, "patient_id", choices=names(tmp))
+})
+
+observe({
+  req(input$RandomSeed, cancelOutput = TRUE)
+  val$rSeed = input$RandomSeed
+})
+
+observe({
+  req(input$patient_id, cancelOutput = TRUE)
+  req(input$new_patients, cancelOutput = T)
+  val$patient_id = input$patient_id
+})
+
+observe({
+  shinyjs::disable("randomness")
+  req(input$randomness)
+  val$predictability = 0.8 #1-input$randomness
+})
+
+observe({
+  req(input$spots_k, cancelOutput = TRUE)
+  txt = input$spots_k
+  if (!all(grepl("\\w+\\s*=\\s*\\d", strsplit(txt,",")[[1]]))) {
+    showNotification("Error in 'Available spots'")
+    return(NULL)
+  }
+  e = try(eval(parse(text = paste("c(", gsub("(\\w+)(\\s*=\\s*\\d+)", '"\\1"\\2', txt), ")"))))
+  if (inherits(e, "error")) {
+    showNotification("Error in 'Available spots'")
+  } else {
+    val$k = e
+  }
+})
+
+observe({
+  req(val$dfExisting, cancelOutput = TRUE)
+  req(val$dfNew, cancelOutput = TRUE)
+  req(val$k, cancelOutput = TRUE)
+  new = val$dfNew
+  df = val$dfExisting
+  k = val$k
+
+  set.seed(val$rSeed)
+  val$alloc = tryCatch(
+    groupTherapyAllocate(df, new, k, input$patient_id, val$predictability), 
+    error = traceback,
+    finaly = print("Exiting computing val$alloc")
+  )
+})
+```
+
+
+```{r}
+output$downloadFile <- downloadHandler(
+  filename = function() {paste('allocation-(', input$spots_k,",seed=",val$rSeed,")-", Sys.Date(), '.csv', sep='')},
+  content = function(con) {
+    if (!is.null(val$alloc)) {
+      df = attr(val$alloc, "combined_patients")
+      df = as.data.frame(as.matrix(as.data.frame(df)))
+      write.csv(df, con, quote = 1:ncol(df), row.names=FALSE)
+    }
+  })
+```
+
+
+Row {.tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### Existing patients allocation
+
+Existing patients should tabulate all patients that have already been enrolled in
+any of the therapy arms. All covariates should be **factors**. There should be
+one factor called **arm** which specifies the therapy are to which the patient
+was admitted.
+
+```{r}
+renderTable({
+  req(val$dfExisting)
+  val$dfExisting
+}, options = list(scrollY = '350px', paging = FALSE, scrollX = TRUE))
+```
+
+
+### New patients to allocate
+
+New patients should tabulate all patients to consider for allocation. All covariates
+should be the same **factors** as for Existing patients. If one of the columns contains
+a patient ID, specify the name of the column in 'Patient ID'.
+
+```{r}
+renderTable({
+  req(val$dfNew)
+  val$dfNew
+}, options = list(scrollY = '350px', paging = FALSE, scrollX = TRUE))
+```
+
+
+### Generated allocation 
+
+
+```{r}
+renderTable({
+  req(val$alloc)
+  val$alloc
+}, options = list(scrollY = '350px', paging = FALSE, scrollX = TRUE))
+```
+
+
+### Debug
+
+```{r}
+renderPrint({
+  req(val$dfExisting)
+  req(val$dfNew)
+  req(val$k)
+  #req(val$patient_id)
+
+  new = val$dfNew
+  df = val$dfExisting
+  k = val$k
+
+  cat("\nExisting patients table\n",rep("=",23), "\n", sep="")
+  print(df)
+  cat("\n\nNew patients\n",rep("=",12), "\n", sep="")
+  print(new)
+  cat("\nColumn with patient ID:", val$patient_id, "\n")
+  cat("\n\nAvailable spots\n",rep("=",15), "\n", sep="")
+  print(k)
+  cat("\n\nComputed allocation\n", rep("=",19), "\n", sep = "")
+  cat("Randomization Seed: ", val$rSeed, "\n")
+  set.seed(val$rSeed)
+  print(tryCatch(
+    groupTherapyAllocate(df, new, k, input$patient_id, val$predictability), 
+    error = traceback
+  ))
+})
+```
+
+
